@@ -1,0 +1,226 @@
+DEFAULT REL
+; COMPILE & RUN WITH:
+; nasm -fmacho64 main.asm && ld -macosx_version_min 10.7.0 -o main main.o && ./main
+
+%define SYSCALL_WRITE 0x2000004
+%define SYSCALL_EXIT  0x2000001
+global start
+
+
+section .text
+
+start:
+
+
+    ; Just output the message preceding the CPU vendor information
+    mov     rax, SYSCALL_WRITE
+    mov     rdi, 1 ; stdout
+    mov     rsi, cpu_vendor_message
+    mov     rdx, cpu_vendor_message.len
+    syscall
+
+    ; Call CPUID, fun begins
+    mov eax, 0
+    cpuid
+
+    ; EAX contains:
+    ; CPU Highest calling value
+    ; EBX & EDX & ECX contain Vendor ID string:
+
+
+    mov [cpu_vendor], ebx
+	mov [cpu_vendor+4], edx
+	mov [cpu_vendor+8], ecx
+    mov [cpu_highest_calling_value], eax
+
+    mov     rax, SYSCALL_WRITE
+    mov     rdi, 1 ; stdout
+    mov     rsi, cpu_vendor
+    mov     rdx, cpu_vendor.len
+    syscall
+
+    call print_line_change
+
+    mov     rax, SYSCALL_WRITE
+    mov     rdi, 1 ; stdout
+    mov     rsi, cpu_highest_calling_message
+    mov     rdx, cpu_highest_calling_message.len
+    syscall
+
+    mov dx, [cpu_highest_calling_value]
+    call print_hex
+
+    call print_line_change
+
+    mov eax, 1
+    cpuid
+
+    ; EAX contains:
+    ; Bits 03-00: Stepping ID
+    ; Bits 07-04: Model
+    ; Bits 11-08: Family ID
+    ; Bits 13-12: Processor Type
+    ; Bits 19-16: Extended Model ID
+    ; Bits 27-20: Extended Family ID
+
+    ; Temporary register for extraction, e.g., r8
+    ; Store Stepping ID (bits 0-3 of EAX)
+    mov r8d, eax
+    and r8b, 0x0F
+    mov [stepping_id_val], r8b
+
+    ; Store Model ID (bits 4-7 of EAX)
+    mov r8d, eax
+    shr r8b, 4
+    and r8b, 0x0F
+    mov [model_id_val], r8b
+
+    ; Store Family ID (bits 8-11 of EAX)
+    mov r8d, eax
+    shr r8d, 8 ; Shift EAX so Family ID is in lower bits of R8D
+    and r8b, 0x0F ; Access as byte
+    mov [family_id_val], r8b
+
+    ; Store Processor Type (bits 12-13 of EAX)
+    mov r8d, eax
+    shr r8d, 12
+    and r8b, 0x03
+    mov [processor_type_val], r8b
+
+    ; Store Extended Model ID (bits 16-19 of EAX)
+    mov r8d, eax
+    shr r8d, 16
+    and r8b, 0x0F
+    mov [ext_model_id_val], r8b
+
+    ; Store Extended Family ID (bits 20-27 of EAX)
+    mov r8d, eax
+    shr r8d, 20
+    and r8b, 0xFF ; This will be a byte
+    mov [ext_family_id_val], r8b
+
+    ; --- Print Stepping ID ---
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, stepping_id_msg
+    mov rdx, stepping_id_msg.len
+    syscall
+    movzx dx, byte [stepping_id_val] ; Load byte and zero-extend to 16-bit dx
+    call print_hex
+    call print_line_change
+
+    ; --- Print Model ID ---
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, model_id_msg
+    mov rdx, model_id_msg.len
+    syscall
+    movzx dx, byte [model_id_val]
+    call print_hex
+    call print_line_change
+
+    ; --- Print Family ID ---
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, family_id_msg
+    mov rdx, family_id_msg.len
+    syscall
+    movzx dx, byte [family_id_val]
+    call print_hex
+    call print_line_change
+
+    ; --- Print Processor Type ---
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, processor_type_msg
+    mov rdx, processor_type_msg.len
+    syscall
+    movzx dx, byte [processor_type_val]
+    call print_hex
+    call print_line_change
+
+    ; --- Print Extended Model ID ---
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, ext_model_id_msg
+    mov rdx, ext_model_id_msg.len
+    syscall
+    movzx dx, byte [ext_model_id_val]
+    call print_hex
+    call print_line_change
+
+    ; --- Print Extended Family ID ---
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, ext_family_id_msg
+    mov rdx, ext_family_id_msg.len
+    syscall
+    movzx dx, byte [ext_family_id_val]
+    call print_hex
+    call print_line_change
+
+
+    ; ----------------------------------------------------------------------
+
+
+    mov     rax, SYSCALL_EXIT ; EXIT
+    mov     rdi, 0
+    syscall
+
+    ; ----------------------------------------------------------------------
+
+    print_line_change:
+		push rdi
+		dec rdi
+		mov rax, SYSCALL_WRITE
+        mov rdi, 1 ; stdout
+		mov rsi, line_change
+		mov rdx, 2
+		syscall
+		imul rax, rdi
+		pop rdi
+		ret
+
+%include "print_hex.asm"
+
+
+section .data
+
+; Storage for EAX=0 CPUID results and messages
+cpu_vendor: db "xxxxxxxxxxxx", 0
+.len:   equ     $ - cpu_vendor
+
+cpu_vendor_message: db "The processor vendor ID is: ", 0
+.len:   equ     $ - cpu_vendor_message
+cpu_highest_calling_value: dd 0xFFFF, 0
+
+cpu_highest_calling_message: db "The highest calling value is: ", 0
+cpu_highest_calling_message.len: equ $ - cpu_highest_calling_message
+
+; Storage for EAX=1 CPUID results and messages
+stepping_id_msg: db "Stepping ID: ", 0
+stepping_id_msg.len: equ $ - stepping_id_msg
+model_id_msg: db "Model ID: ", 0
+model_id_msg.len: equ $ - model_id_msg
+family_id_msg: db "Family ID: ", 0
+family_id_msg.len: equ $ - family_id_msg
+processor_type_msg: db "Processor Type: ", 0
+processor_type_msg.len: equ $ - processor_type_msg
+ext_model_id_msg: db "Extended Model ID: ", 0
+ext_model_id_msg.len: equ $ - ext_model_id_msg
+ext_family_id_msg: db "Extended Family ID: ", 0
+ext_family_id_msg.len: equ $ - ext_family_id_msg
+
+stepping_id_val: resb 1
+model_id_val:    resb 1
+family_id_val:   resb 1
+processor_type_val: resb 1
+ext_model_id_val: resb 1
+ext_family_id_val: resb 1
+
+; Line change for output
+line_change: db	" ", 10
+
+; HEX_OUT is the output buffer for hexadecimal representation
+HEX_OUT: db '0x0000',0
+HEX_OUT.len: equ $ - HEX_OUT
