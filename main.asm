@@ -210,9 +210,8 @@ start:
     mov [eax_2_eax_2], r8b
 
     mov [eax_2_ebx], ebx ; Store EBX for later use
-
-
     mov [eax_2_eax], eax ; EAX for later use
+    mov [eax_2_ecx], ecx ; ECX for later use
 
     jmp is_supported
 
@@ -304,14 +303,14 @@ eax_value_valid:
     bit_31_ebx_is_set:
     mov rax, SYSCALL_WRITE
     mov rdi, 1 ; stdout
-    mov rsi, eax_value_not_valid_msg
-    mov rdx, eax_value_not_valid_msg.len
+    mov rsi, ebx_value_not_valid_msg
+    mov rdx, ebx_value_not_valid_msg.len
     syscall
     ; Optionally, you can print the EAX value here
     mov edx, ebx
     call print_hex
     call print_line_change
-    jmp eax_3
+    jmp eax_2_ecx_part
 
     eax_2_ebx_valid:
     ; If we reach here, EBX is valid
@@ -360,6 +359,47 @@ eax_value_valid:
     call print_line_change
 
 
+    eax_2_ecx_part:
+
+    mov ecx, [eax_2_ecx] ; Load original ECX value
+    test ecx, 0x80000000
+    jnz bit_31_ecx_is_set
+    jmp eax_2_ecx_valid
+
+    bit_31_ecx_is_set:
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, ecx_value_not_valid_msg
+    mov rdx, ecx_value_not_valid_msg.len
+    syscall
+    ; Optionally, you can print the EAX value here
+    mov edx, ecx
+    call print_hex
+    call print_line_change
+    jmp eax_2_edx_part
+
+    eax_2_ecx_valid:
+    ; If we reach here, ECX is valid
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_cl_msg
+    mov rdx, eax_2_cl_msg.len
+    syscall
+    mov ecx, [eax_2_ecx] ; Load original ECX value
+    movzx dx, cl ; Load the CL value (bits 0-7 of ECX)
+    call print_hex
+    call print_line_change
+
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_ch_msg
+    mov rdx, eax_2_ch_msg.len
+    syscall
+    movzx dx, ch ; Load the CL value (bits 0-7 of ECX)
+    call print_hex
+    call print_line_change
+
+    eax_2_edx_part:
 
     eax_3:
 
@@ -394,9 +434,7 @@ eax_value_valid:
 
 section .data
 
-; Storage for EAX=0 CPUID results and messages
-
-instruction_msg: db "This program will call CPUID in order starting from EAX=0. It'll tell whenever CPUID was called again to allow the user to follow up on what the value of EAX is.", 10
+instruction_msg: db "This program will call CPUID in order starting from EAX=0. It'll tell whenever CPUID was called, so the user can follow up on what the value of EAX is.", 10
 instruction_msg.len: equ $ - instruction_msg
 
 cpuid_called_msg: db "Calling CPUID!", 10
@@ -436,6 +474,15 @@ eax_2_instruction_msg.len: equ $ - eax_2_instruction_msg
 eax_value_not_valid_msg: db "Value of EAX doesn't seem valid and the result below should be discarded: ", 10
 eax_value_not_valid_msg.len: equ $ - eax_value_not_valid_msg
 
+ebx_value_not_valid_msg: db "Value of EBX doesn't seem valid and the result below should be discarded: ", 10
+ebx_value_not_valid_msg.len: equ $ - ebx_value_not_valid_msg
+
+ecx_value_not_valid_msg: db "Value of ECX doesn't seem valid and the result below should be discarded: ", 10
+ecx_value_not_valid_msg.len: equ $ - ecx_value_not_valid_msg
+
+edx_value_not_valid_msg: db "Value of EDX doesn't seem valid and the result below should be discarded: ", 10
+edx_value_not_valid_msg.len: equ $ - edx_value_not_valid_msg
+
 eax_2_ah_msg: db "AH value (representing bits 8-16 for EAX): ", 0
 eax_2_ah_msg.len: equ $ - eax_2_ah_msg
 
@@ -457,6 +504,12 @@ eax_2_ebx1_msg.len: equ $ - eax_2_ebx1_msg
 eax_2_ebx2_msg: db "EBX value 2 (representing bits 24-32 for EBX): ", 0
 eax_2_ebx2_msg.len: equ $ - eax_2_ebx2_msg
 
+eax_2_cl_msg: db "CL value (representing bits 1-8 for ECX): ", 0
+eax_2_cl_msg.len: equ $ - eax_2_cl_msg
+
+eax_2_ch_msg: db "CH value (representing bits 8-16 for ECX): ", 0
+eax_2_ch_msg.len: equ $ - eax_2_ch_msg
+
 stepping_id_val: resb 1
 model_id_val:    resb 1
 family_id_val:   resb 1
@@ -472,6 +525,8 @@ eax_2_eax_2: resb 1
 eax_2_eax: dd 0xFFFFFF, 0
 
 eax_2_ebx: resd 1
+
+eax_2_ecx: resd 1 ; Store ECX for later use
 
 ; Line change for output
 line_change: db	" ", 10
