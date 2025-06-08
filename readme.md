@@ -11,4 +11,6 @@ MIT-license
 
 Compile & run using this command (make sure you have a recent version of both NASM and LD):
 
-```nasm -fmacho64 main.asm && ld -macosx_version_min 10.7.0 -o main main.o && ./main```
+```
+nasm -fmacho64 main.asm && ld -macosx_version_min 10.7.0 -o main main.o && ./main
+```

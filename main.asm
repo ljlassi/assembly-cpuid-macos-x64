@@ -325,6 +325,40 @@ eax_value_valid:
     call print_hex
     call print_line_change
 
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_bh_msg
+    mov rdx, eax_2_bh_msg.len
+    syscall
+    movzx dx, bh ; Load the BX value (bits 8-15 of EBX)
+    call print_hex
+    call print_line_change
+
+
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_ebx1_msg
+    mov rdx, eax_2_ebx1_msg.len
+    syscall
+    mov r8d, ebx
+    shr r8d, 16
+    and r8b, 0xFF ; This will be a byte
+    movzx dx, r8b ; Move the byte value to DX for printing
+    call print_hex
+    call print_line_change
+
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_ebx2_msg
+    mov rdx, eax_2_ebx2_msg.len
+    syscall
+    mov r8d, ebx
+    shr r8d, 24
+    and r8b, 0xFF ; This will be a byte
+    movzx dx, r8b ; Move the byte value to DX for printing
+    call print_hex
+    call print_line_change
+
 
 
     eax_3:
@@ -411,8 +445,17 @@ eax_2_eax_1_msg.len: equ $ - eax_2_eax_1_msg
 eax_2_eax_2_msg: db "EAX value 2 (representing bits 24-32 for EAX): ", 0
 eax_2_eax_2_msg.len: equ $ - eax_2_eax_2_msg
 
-eax_2_bl_msg: db "BL value (representing bits 0-8 for EBX): ", 0
+eax_2_bl_msg: db "BL value (representing bits 1-8 for EBX): ", 0
 eax_2_bl_msg.len: equ $ - eax_2_bl_msg
+
+eax_2_bh_msg: db "BH value (representing bits 8-16 for EBX): ", 0
+eax_2_bh_msg.len: equ $ - eax_2_bh_msg
+
+eax_2_ebx1_msg: db "EBX value 1 (representing bits 16-24 for EBX): ", 0
+eax_2_ebx1_msg.len: equ $ - eax_2_ebx1_msg
+
+eax_2_ebx2_msg: db "EBX value 2 (representing bits 24-32 for EBX): ", 0
+eax_2_ebx2_msg.len: equ $ - eax_2_ebx2_msg
 
 stepping_id_val: resb 1
 model_id_val:    resb 1
