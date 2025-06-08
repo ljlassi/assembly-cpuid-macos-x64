@@ -11,12 +11,21 @@ section .text
 
 start:
 
+    call print_line_change
 
-    ; Just output the message preceding the CPU vendor information
+    ; Print the instruction message
     mov     rax, SYSCALL_WRITE
     mov     rdi, 1 ; stdout
-    mov     rsi, cpu_vendor_message
-    mov     rdx, cpu_vendor_message.len
+    mov     rsi, instruction_msg
+    mov     rdx, instruction_msg.len
+    syscall
+
+    ; Print the message that CPUID is being called
+    call print_line_change
+    mov     rax, SYSCALL_WRITE
+    mov     rdi, 1 ; stdout
+    mov     rsi, cpuid_called_msg
+    mov     rdx, cpuid_called_msg.len
     syscall
 
     ; Call CPUID, fun begins
@@ -32,6 +41,13 @@ start:
 	mov [cpu_vendor+4], edx
 	mov [cpu_vendor+8], ecx
     mov [cpu_highest_calling_value], eax
+
+    ; Just output the message preceding the CPU vendor information
+    mov     rax, SYSCALL_WRITE
+    mov     rdi, 1 ; stdout
+    mov     rsi, cpu_vendor_message
+    mov     rdx, cpu_vendor_message.len
+    syscall
 
     mov     rax, SYSCALL_WRITE
     mov     rdi, 1 ; stdout
@@ -51,6 +67,14 @@ start:
     call print_hex
 
     call print_line_change
+
+    ; Print the message that CPUID is being called
+    call print_line_change
+    mov     rax, SYSCALL_WRITE
+    mov     rdi, 1 ; stdout
+    mov     rsi, cpuid_called_msg
+    mov     rdx, cpuid_called_msg.len
+    syscall
 
     mov eax, 1
     cpuid
@@ -159,6 +183,78 @@ start:
     call print_hex
     call print_line_change
 
+    ; Print the message that CPUID is being called
+    call print_line_change
+    mov     rax, SYSCALL_WRITE
+    mov     rdi, 1 ; stdout
+    mov     rsi, cpuid_called_msg
+    mov     rdx, cpuid_called_msg.len
+    syscall
+
+    mov eax, 2
+    cpuid
+    
+    mov [eax_3_ah], ah ; Store AH value for later use
+    mov [eax_3_eax], eax ; EAX for later use
+
+    cmp al, 0x01 ; Compare the lowest byte of EAX with 01h
+    jne not_supported ; If CPUID with EAX=2 is not supported, we skip the rest of the code.
+    jmp is_supported
+
+    not_supported:
+
+        mov     rax, SYSCALL_WRITE
+        mov     rdi, 1 ; stdout
+        mov     rsi, not_supported_msg
+        mov     rdx, not_supported_msg.len
+        syscall
+        jmp eax_3
+
+    is_supported:
+    ; If we reach here, CPUID with EAX=2 is supported.
+    ; Assume EAX contains the value you want to check
+    test eax, 0x80000000 ; Test bit 31 of EAX
+
+    ; Option 1: Jump if bit 31 is set (result is not zero)
+    jnz bit_31_eax_is_set   ; or JS bit_31_is_set (Jump if Sign Flag is set)
+
+
+
+    ; Code for when bit 31 is NOT set
+    ; ...
+    jmp eax_value_valid
+
+bit_31_eax_is_set:
+    ; Code for when bit 31 IS set
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_value_not_valid_msg
+    mov rdx, eax_value_not_valid_msg.len
+    syscall
+    ; Optionally, you can print the EAX value here
+    mov edx, eax
+    call print_hex
+    call print_line_change
+
+
+eax_value_valid:
+    ; ...
+    mov    rax, SYSCALL_WRITE
+    mov    rdi, 1 ; stdout
+    mov    rsi, eax_3_ah_msg
+    mov    rdx, eax_3_ah_msg.len
+    syscall
+
+    movzx dx, byte [eax_3_ah]
+    call print_hex
+    call print_line_change
+
+    eax_3:
+
+
+
+    ; EAX contains:
+
 
     ; ----------------------------------------------------------------------
 
@@ -187,6 +283,14 @@ start:
 section .data
 
 ; Storage for EAX=0 CPUID results and messages
+
+instruction_msg: db "This program will call CPUID in order starting from EAX=0. The program will tell whenever CPUID was called again to allow the user to follow up on what the value of EAX is.", 10
+instruction_msg.len: equ $ - instruction_msg
+
+cpuid_called_msg: db "Calling CPUID!", 10
+cpuid_called_msg.len: equ $ - cpuid_called_msg
+
+
 cpu_vendor: db "xxxxxxxxxxxx", 0
 .len:   equ     $ - cpu_vendor
 
@@ -211,12 +315,25 @@ ext_model_id_msg.len: equ $ - ext_model_id_msg
 ext_family_id_msg: db "Extended Family ID: ", 0
 ext_family_id_msg.len: equ $ - ext_family_id_msg
 
+not_supported_msg: db "CPUID with EAX being set at the current value is not supported by this CPU.", 10
+not_supported_msg.len: equ $ - not_supported_msg
+
+eax_value_not_valid_msg: db "Value of EAX doesn't seem valid and the result below should be discarded: ", 10
+eax_value_not_valid_msg.len: equ $ - eax_value_not_valid_msg
+
+eax_3_ah_msg: db "AH value: ", 0
+eax_3_ah_msg.len: equ $ - eax_3_ah_msg
+
 stepping_id_val: resb 1
 model_id_val:    resb 1
 family_id_val:   resb 1
 processor_type_val: resb 1
 ext_model_id_val: resb 1
 ext_family_id_val: resb 1
+
+eax_3_ah: dd 0xFFFF, 0
+
+eax_3_eax: dd 0xFFFFFF, 0
 
 ; Line change for output
 line_change: db	" ", 10
