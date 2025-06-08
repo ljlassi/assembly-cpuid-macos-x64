@@ -193,12 +193,25 @@ start:
 
     mov eax, 2
     cpuid
-    
-    mov [eax_3_ah], ah ; Store AH value for later use
-    mov [eax_3_eax], eax ; EAX for later use
 
     cmp al, 0x01 ; Compare the lowest byte of EAX with 01h
     jne not_supported ; If CPUID with EAX=2 is not supported, we skip the rest of the code.
+    
+    mov [eax_2_ah], ah ; Store AH value for later use
+    mov r8d, eax
+    shr r8d, 16
+    and r8b, 0xFF ; This will be a byte
+    mov [eax_2_eax_1], r8b
+
+
+    mov r8d, eax
+    shr r8d, 24
+    and r8b, 0xFF ; This will be a byte
+    mov [eax_2_eax_2], r8b
+
+
+    mov [eax_2_eax], eax ; EAX for later use
+
     jmp is_supported
 
     not_supported:
@@ -238,16 +251,46 @@ bit_31_eax_is_set:
 
 
 eax_value_valid:
+
+
+
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_instruction_msg
+    mov rdx, eax_2_instruction_msg.len
+    syscall
+
     ; ...
     mov    rax, SYSCALL_WRITE
     mov    rdi, 1 ; stdout
-    mov    rsi, eax_3_ah_msg
-    mov    rdx, eax_3_ah_msg.len
+    mov    rsi, eax_2_ah_msg
+    mov    rdx, eax_2_ah_msg.len
     syscall
 
-    movzx dx, byte [eax_3_ah]
+    movzx dx, byte [eax_2_ah]
     call print_hex
     call print_line_change
+
+    mov    rax, SYSCALL_WRITE
+    mov    rdi, 1 ; stdout
+    mov    rsi, eax_2_eax_1_msg
+    mov    rdx, eax_2_eax_1_msg.len
+    syscall
+
+    mov dx, [eax_2_eax_1] ; Load the full EAX value for printing
+    call print_hex
+    call print_line_change
+
+    mov    rax, SYSCALL_WRITE
+    mov    rdi, 1 ; stdout
+    mov    rsi, eax_2_eax_2_msg
+    mov    rdx, eax_2_eax_2_msg.len
+    syscall
+
+    mov dx, [eax_2_eax_2] ; Load the full EAX value for printing
+    call print_hex
+    call print_line_change
+
 
     eax_3:
 
@@ -318,11 +361,20 @@ ext_family_id_msg.len: equ $ - ext_family_id_msg
 not_supported_msg: db "CPUID with EAX being set at the current value is not supported by this CPU.", 10
 not_supported_msg.len: equ $ - not_supported_msg
 
+eax_2_instruction_msg: db "CPUID with EAX=2 is being called now. We will just display the values byte by byte, as their function can differ wildly between CPU models.", 10
+eax_2_instruction_msg.len: equ $ - eax_2_instruction_msg
+
 eax_value_not_valid_msg: db "Value of EAX doesn't seem valid and the result below should be discarded: ", 10
 eax_value_not_valid_msg.len: equ $ - eax_value_not_valid_msg
 
-eax_3_ah_msg: db "AH value: ", 0
-eax_3_ah_msg.len: equ $ - eax_3_ah_msg
+eax_2_ah_msg: db "AH value (representing bits 8-16 for EAX): ", 0
+eax_2_ah_msg.len: equ $ - eax_2_ah_msg
+
+eax_2_eax_1_msg: db "EAX value 1 (representing bits 16-24 for EAX): ", 0
+eax_2_eax_1_msg.len: equ $ - eax_2_eax_1_msg
+
+eax_2_eax_2_msg: db "EAX value 2 (representing bits 24-32 for EAX): ", 0
+eax_2_eax_2_msg.len: equ $ - eax_2_eax_2_msg
 
 stepping_id_val: resb 1
 model_id_val:    resb 1
@@ -331,9 +383,12 @@ processor_type_val: resb 1
 ext_model_id_val: resb 1
 ext_family_id_val: resb 1
 
-eax_3_ah: dd 0xFFFF, 0
+eax_2_ah: dd 0xFFFF, 0
 
-eax_3_eax: dd 0xFFFFFF, 0
+eax_2_eax_1: resb 1 ; This is the byte value of EAX after shifting
+eax_2_eax_2: resb 1
+
+eax_2_eax: dd 0xFFFFFF, 0
 
 ; Line change for output
 line_change: db	" ", 10
