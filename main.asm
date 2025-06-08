@@ -209,6 +209,8 @@ start:
     and r8b, 0xFF ; This will be a byte
     mov [eax_2_eax_2], r8b
 
+    mov [eax_2_ebx], ebx ; Store EBX for later use
+
 
     mov [eax_2_eax], eax ; EAX for later use
 
@@ -248,6 +250,7 @@ bit_31_eax_is_set:
     mov edx, eax
     call print_hex
     call print_line_change
+    jmp eax_2_ebx_part
 
 
 eax_value_valid:
@@ -291,6 +294,38 @@ eax_value_valid:
     call print_hex
     call print_line_change
 
+    eax_2_ebx_part:
+
+    mov ebx, [eax_2_ebx] ; Load original EBX value
+    test ebx, 0x80000000
+    jnz bit_31_ebx_is_set
+    jmp eax_2_ebx_valid
+
+    bit_31_ebx_is_set:
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_value_not_valid_msg
+    mov rdx, eax_value_not_valid_msg.len
+    syscall
+    ; Optionally, you can print the EAX value here
+    mov edx, ebx
+    call print_hex
+    call print_line_change
+    jmp eax_3
+
+    eax_2_ebx_valid:
+    ; If we reach here, EBX is valid
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_bl_msg
+    mov rdx, eax_2_bl_msg.len
+    syscall
+    ; Print the BL value (bits 0-7 of EBX)
+    movzx dx, bl ; Load the BL value (bits 0-7 of EBX)
+    call print_hex
+    call print_line_change
+
+
 
     eax_3:
 
@@ -327,7 +362,7 @@ section .data
 
 ; Storage for EAX=0 CPUID results and messages
 
-instruction_msg: db "This program will call CPUID in order starting from EAX=0. The program will tell whenever CPUID was called again to allow the user to follow up on what the value of EAX is.", 10
+instruction_msg: db "This program will call CPUID in order starting from EAX=0. It'll tell whenever CPUID was called again to allow the user to follow up on what the value of EAX is.", 10
 instruction_msg.len: equ $ - instruction_msg
 
 cpuid_called_msg: db "Calling CPUID!", 10
@@ -376,6 +411,9 @@ eax_2_eax_1_msg.len: equ $ - eax_2_eax_1_msg
 eax_2_eax_2_msg: db "EAX value 2 (representing bits 24-32 for EAX): ", 0
 eax_2_eax_2_msg.len: equ $ - eax_2_eax_2_msg
 
+eax_2_bl_msg: db "BL value (representing bits 0-8 for EBX): ", 0
+eax_2_bl_msg.len: equ $ - eax_2_bl_msg
+
 stepping_id_val: resb 1
 model_id_val:    resb 1
 family_id_val:   resb 1
@@ -390,9 +428,11 @@ eax_2_eax_2: resb 1
 
 eax_2_eax: dd 0xFFFFFF, 0
 
+eax_2_ebx: resd 1
+
 ; Line change for output
 line_change: db	" ", 10
 
 ; HEX_OUT is the output buffer for hexadecimal representation
-HEX_OUT: db '0x0000',0
+HEX_OUT: dd '0x0000',0
 HEX_OUT.len: equ $ - HEX_OUT
