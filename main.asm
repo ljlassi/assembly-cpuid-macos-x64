@@ -193,6 +193,10 @@ start:
 
     mov eax, 2
     cpuid
+    mov [eax_2_ebx], ebx ; Store EBX for later use
+    mov [eax_2_eax], eax ; EAX for later use
+    mov [eax_2_ecx], ecx ; ECX for later use
+    mov [eax_2_edx], edx ; EDX for later use
 
     cmp al, 0x01 ; Compare the lowest byte of EAX with 01h
     jne not_supported ; If CPUID with EAX=2 is not supported, we skip the rest of the code.
@@ -208,10 +212,6 @@ start:
     shr r8d, 24
     and r8b, 0xFF ; This will be a byte
     mov [eax_2_eax_2], r8b
-
-    mov [eax_2_ebx], ebx ; Store EBX for later use
-    mov [eax_2_eax], eax ; EAX for later use
-    mov [eax_2_ecx], ecx ; ECX for later use
 
     jmp is_supported
 
@@ -405,7 +405,99 @@ eax_value_valid:
     call print_hex
     call print_line_change
 
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_ecx1_msg
+    mov rdx, eax_2_ecx1_msg.len
+    syscall
+    mov r8d, ecx
+    shr r8d, 16
+    and r8b, 0xFF ; This will be a byte
+    movzx rdx, r8b ; Move the byte value to DX for printing
+    call print_hex
+    call print_line_change
+
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_ecx2_msg
+    mov rdx, eax_2_ecx2_msg.len
+    syscall
+    mov r8d, ecx
+    shr r8d, 24
+    and r8b, 0xFF ; This will be a byte
+    movzx rdx, r8b ; Move the byte value to DX for printing
+    call print_hex
+    call print_line_change
+
     eax_2_edx_part:
+
+    mov edx, [eax_2_edx] ; Load original EDX value
+    test edx, 0x80000000
+    jnz bit_31_edx_is_set
+    jmp eax_2_edx_valid
+
+    bit_31_edx_is_set:
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, edx_value_not_valid_msg
+    mov rdx, edx_value_not_valid_msg.len
+    syscall
+    ; Optionally, you can print the EAX value here
+    xor rdx, rdx ; Clear RDX before printing
+    mov edx, [eax_2_edx] ; Load original EDX value
+    call print_hex
+    call print_line_change
+    jmp eax_3
+
+    eax_2_edx_valid:
+    ; If we reach here, EDX is valid
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_dl_msg
+    mov rdx, eax_2_dl_msg.len
+    syscall
+    xor rdx, rdx ; Clear RDX before printing
+    mov edx, [eax_2_edx] ; Load original EDX value
+    movzx edx, dl ; Load the DL value (bits 0-7 of EDX)
+    call print_hex
+    call print_line_change
+
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_dh_msg
+    mov rdx, eax_2_dh_msg.len
+    syscall
+    xor rdx, rdx ; Clear RDX before printing
+    mov edx, [eax_2_edx] ; Load original EDX value
+    movzx edx, dh ; Load the DH value (bits 7-15 of EDX)
+    call print_hex
+    call print_line_change
+
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_edx1_msg
+    mov rdx, eax_2_edx1_msg.len
+    syscall
+    mov r8d, [eax_2_edx]
+    shr r8d, 16
+    and r8b, 0xFF ; This will be a byte
+    movzx rdx, r8b ; Move the byte value to DX for printing
+    call print_hex
+    call print_line_change
+
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, eax_2_edx2_msg
+    mov rdx, eax_2_edx2_msg.len
+    syscall
+    mov r8d, [eax_2_edx]
+    shr r8d, 24
+    and r8b, 0xFF ; This will be a byte
+    movzx rdx, r8b ; Move the byte value to DX for printing
+    call print_hex
+    call print_line_change
+
+
 
     eax_3:
 
@@ -516,6 +608,24 @@ eax_2_cl_msg.len: equ $ - eax_2_cl_msg
 eax_2_ch_msg: db "CH value (representing bits 8-16 for ECX): ", 0
 eax_2_ch_msg.len: equ $ - eax_2_ch_msg
 
+eax_2_ecx1_msg: db "ECX value 1 (representing bits 16-24 for ECX): ", 0
+eax_2_ecx1_msg.len: equ $ - eax_2_ecx1_msg
+
+eax_2_ecx2_msg: db "ECX value 2 (representing bits 24-32 for ECX): ", 0
+eax_2_ecx2_msg.len: equ $ - eax_2_ecx2_msg
+
+eax_2_dl_msg: db "DL value (representing bits 1-8 for EDX): ", 0
+eax_2_dl_msg.len: equ $ - eax_2_dl_msg
+
+eax_2_dh_msg: db "DH value (representing bits 8-16 for EDX): ", 0
+eax_2_dh_msg.len: equ $ - eax_2_dh_msg
+
+eax_2_edx1_msg: db "EDX value 1 (representing bits 16-24 for EDX): ", 0
+eax_2_edx1_msg.len: equ $ - eax_2_edx1_msg
+
+eax_2_edx2_msg: db "EDX value 2 (representing bits 24-32 for EDX): ", 0
+eax_2_edx2_msg.len: equ $ - eax_2_edx2_msg
+
 stepping_id_val: resb 1
 model_id_val:    resb 1
 family_id_val:   resb 1
@@ -533,6 +643,7 @@ eax_2_eax: dd 0xFFFFFF, 0
 eax_2_ebx: resd 1
 
 eax_2_ecx: resd 1 ; Store ECX for later use
+eax_2_edx: resd 1 ; Store EDX for later use
 
 ; Line change for output
 line_change: db	" ", 10
