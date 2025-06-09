@@ -184,7 +184,7 @@ start:
     call print_line_change
 
     call print_line_change
-    
+
     mov eax, 2
     cpuid
     mov [eax_2_ebx], ebx ; Store EBX for later use
@@ -522,6 +522,7 @@ eax_value_valid:
 		ret
 
 %include "print_hex.asm"
+%include "print_binary.asm"
 
 
 section .data
