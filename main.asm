@@ -24,8 +24,8 @@ start:
     call print_line_change
     mov     rax, SYSCALL_WRITE
     mov     rdi, 1 ; stdout
-    mov     rsi, cpuid_called_msg
-    mov     rdx, cpuid_called_msg.len
+    mov     rsi, calling_cpuid_eax0_msg
+    mov     rdx, calling_cpuid_eax0_msg.len
     syscall
 
     ; Call CPUID, fun begins
@@ -72,8 +72,8 @@ start:
     call print_line_change
     mov     rax, SYSCALL_WRITE
     mov     rdi, 1 ; stdout
-    mov     rsi, cpuid_called_msg
-    mov     rdx, cpuid_called_msg.len
+    mov     rsi, calling_cpuid_eax1_msg
+    mov     rdx, calling_cpuid_eax1_msg.len
     syscall
 
     mov eax, 1
@@ -183,14 +183,8 @@ start:
     call print_hex
     call print_line_change
 
-    ; Print the message that CPUID is being called
     call print_line_change
-    mov     rax, SYSCALL_WRITE
-    mov     rdi, 1 ; stdout
-    mov     rsi, cpuid_called_msg
-    mov     rdx, cpuid_called_msg.len
-    syscall
-
+    
     mov eax, 2
     cpuid
     mov [eax_2_ebx], ebx ; Store EBX for later use
@@ -532,11 +526,14 @@ eax_value_valid:
 
 section .data
 
-instruction_msg: db "This program will call CPUID in order starting from EAX=0. It'll tell whenever CPUID was called, so the user can follow up on what the value of EAX is.", 10
+instruction_msg: dd "This program will call CPUID in order starting from EAX=0.", 10, " Information will be printed on the screen. ",10," Consider piping the output if you want to save it, by e.g. running by ./main > ~/cpuid.txt ", 10
 instruction_msg.len: equ $ - instruction_msg
 
-cpuid_called_msg: db "Calling CPUID!", 10
-cpuid_called_msg.len: equ $ - cpuid_called_msg
+calling_cpuid_eax0_msg: db "Calling CPUID, EAX=0", 10
+calling_cpuid_eax0_msg.len: equ $ - calling_cpuid_eax0_msg
+
+calling_cpuid_eax1_msg: db "Calling CPUID, EAX=1", 10
+calling_cpuid_eax1_msg.len: equ $ - calling_cpuid_eax1_msg
 
 
 cpu_vendor: db "xxxxxxxxxxxx", 0
