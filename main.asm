@@ -63,7 +63,7 @@ start:
     mov     rdx, cpu_highest_calling_message.len
     syscall
 
-    mov dx, [cpu_highest_calling_value]
+    mov rdx, [cpu_highest_calling_value]
     call print_hex
 
     call print_line_change
@@ -129,7 +129,7 @@ start:
     mov rsi, stepping_id_msg
     mov rdx, stepping_id_msg.len
     syscall
-    movzx dx, byte [stepping_id_val] ; Load byte and zero-extend to 16-bit dx
+    movzx rdx, byte [stepping_id_val] ; Load byte and zero-extend to 16-bit dx
     call print_hex
     call print_line_change
 
@@ -139,7 +139,7 @@ start:
     mov rsi, model_id_msg
     mov rdx, model_id_msg.len
     syscall
-    movzx dx, byte [model_id_val]
+    movzx rdx, byte [model_id_val]
     call print_hex
     call print_line_change
 
@@ -149,7 +149,7 @@ start:
     mov rsi, family_id_msg
     mov rdx, family_id_msg.len
     syscall
-    movzx dx, byte [family_id_val]
+    movzx rdx, byte [family_id_val]
     call print_hex
     call print_line_change
 
@@ -159,7 +159,7 @@ start:
     mov rsi, processor_type_msg
     mov rdx, processor_type_msg.len
     syscall
-    movzx dx, byte [processor_type_val]
+    movzx rdx, byte [processor_type_val]
     call print_hex
     call print_line_change
 
@@ -169,7 +169,7 @@ start:
     mov rsi, ext_model_id_msg
     mov rdx, ext_model_id_msg.len
     syscall
-    movzx dx, byte [ext_model_id_val]
+    movzx rdx, byte [ext_model_id_val]
     call print_hex
     call print_line_change
 
@@ -179,7 +179,7 @@ start:
     mov rsi, ext_family_id_msg
     mov rdx, ext_family_id_msg.len
     syscall
-    movzx dx, byte [ext_family_id_val]
+    movzx rdx, byte [ext_family_id_val]
     call print_hex
     call print_line_change
 
@@ -246,6 +246,7 @@ bit_31_eax_is_set:
     mov rdx, eax_value_not_valid_msg.len
     syscall
     ; Optionally, you can print the EAX value here
+    xor rdx, rdx ; Clear RDX before printing
     mov edx, eax
     call print_hex
     call print_line_change
@@ -269,7 +270,7 @@ eax_value_valid:
     mov    rdx, eax_2_ah_msg.len
     syscall
 
-    movzx dx, byte [eax_2_ah]
+    movzx rdx, byte [eax_2_ah]
     call print_hex
     call print_line_change
 
@@ -279,7 +280,7 @@ eax_value_valid:
     mov    rdx, eax_2_eax_1_msg.len
     syscall
 
-    mov dx, [eax_2_eax_1] ; Load the full EAX value for printing
+    mov rdx, [eax_2_eax_1] 
     call print_hex
     call print_line_change
 
@@ -289,7 +290,7 @@ eax_value_valid:
     mov    rdx, eax_2_eax_2_msg.len
     syscall
 
-    mov dx, [eax_2_eax_2] ; Load the full EAX value for printing
+    mov rdx, [eax_2_eax_2] 
     call print_hex
     call print_line_change
 
@@ -307,6 +308,7 @@ eax_value_valid:
     mov rdx, ebx_value_not_valid_msg.len
     syscall
     ; Optionally, you can print the EAX value here
+    xor rdx, rdx ; Clear RDX before printing
     mov edx, ebx
     call print_hex
     call print_line_change
@@ -320,7 +322,8 @@ eax_value_valid:
     mov rdx, eax_2_bl_msg.len
     syscall
     ; Print the BL value (bits 0-7 of EBX)
-    movzx dx, bl ; Load the BL value (bits 0-7 of EBX)
+    xor rdx, rdx ; Clear RDX before printing
+    movzx edx, bl ; Load the BL value (bits 0-7 of EBX)
     call print_hex
     call print_line_change
 
@@ -329,7 +332,8 @@ eax_value_valid:
     mov rsi, eax_2_bh_msg
     mov rdx, eax_2_bh_msg.len
     syscall
-    movzx dx, bh ; Load the BX value (bits 8-15 of EBX)
+    xor rdx, rdx ; Clear RDX before printing
+    movzx edx, bh ; Load the BX value (bits 8-15 of EBX)
     call print_hex
     call print_line_change
 
@@ -342,7 +346,7 @@ eax_value_valid:
     mov r8d, ebx
     shr r8d, 16
     and r8b, 0xFF ; This will be a byte
-    movzx dx, r8b ; Move the byte value to DX for printing
+    movzx rdx, r8b ; Move the byte value to DX for printing
     call print_hex
     call print_line_change
 
@@ -354,7 +358,7 @@ eax_value_valid:
     mov r8d, ebx
     shr r8d, 24
     and r8b, 0xFF ; This will be a byte
-    movzx dx, r8b ; Move the byte value to DX for printing
+    movzx rdx, r8b ; Move the byte value to DX for printing
     call print_hex
     call print_line_change
 
@@ -373,6 +377,7 @@ eax_value_valid:
     mov rdx, ecx_value_not_valid_msg.len
     syscall
     ; Optionally, you can print the EAX value here
+    xor rdx, rdx ; Clear RDX before printing
     mov edx, ecx
     call print_hex
     call print_line_change
@@ -386,7 +391,7 @@ eax_value_valid:
     mov rdx, eax_2_cl_msg.len
     syscall
     mov ecx, [eax_2_ecx] ; Load original ECX value
-    movzx dx, cl ; Load the CL value (bits 0-7 of ECX)
+    movzx rdx, cl ; Load the CL value (bits 0-7 of ECX)
     call print_hex
     call print_line_change
 
@@ -395,7 +400,8 @@ eax_value_valid:
     mov rsi, eax_2_ch_msg
     mov rdx, eax_2_ch_msg.len
     syscall
-    movzx dx, ch ; Load the CL value (bits 0-7 of ECX)
+    xor rdx, rdx ; Clear RDX before printing
+    movzx edx, ch ; Load the CL value (bits 0-7 of ECX)
     call print_hex
     call print_line_change
 
@@ -519,8 +525,8 @@ ext_family_id_val: resb 1
 
 eax_2_ah: dd 0xFFFF, 0
 
-eax_2_eax_1: resb 1 ; This is the byte value of EAX after shifting
-eax_2_eax_2: resb 1
+eax_2_eax_1: dd 0x0, 0 ; This is the byte value of EAX after shifting
+eax_2_eax_2: dd 0x0, 0
 
 eax_2_eax: dd 0xFFFFFF, 0
 
@@ -532,5 +538,5 @@ eax_2_ecx: resd 1 ; Store ECX for later use
 line_change: db	" ", 10
 
 ; HEX_OUT is the output buffer for hexadecimal representation
-HEX_OUT: dd '0x      ',0
+HEX_OUT: dd '0x        ',0
 HEX_OUT.len: equ $ - HEX_OUT

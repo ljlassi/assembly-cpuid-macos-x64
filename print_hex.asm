@@ -21,7 +21,7 @@ print_hex:
   ; Input value is in dx (16-bit)
 
   ; Handle dx == 0 case: print "0x0"
-  test dx, dx
+  test rdx, rdx
   jnz .process_non_zero_val
 
   ; Value is 0
@@ -35,18 +35,18 @@ print_hex:
   ; HEX_OUT structure: '0' 'x' H1 H2 H3 H4
   ; H1 is Most Significant Nibble, H4 is Least Significant Nibble.
 
-  mov r10w, dx      ; Copy dx to r10w for manipulation
+  mov r10, rdx      ; Copy rdx to r10 for manipulation
   mov rbx, HEX_OUT  ; Base address of HEX_OUT
   add rbx, 2        ; rbx now points to where H1 (MSN) should go (HEX_OUT[2])
-  mov rcx, 4        ; Loop 4 times for 4 nibbles
+  mov rcx, 8        ; Loop 8 times for 8 nibbles
 
 .conversion_loop:
   dec rcx           ; rcx will be 3, 2, 1, 0 (used as index from right to left for storing)
                     ; Iteration 1 (rcx=3): processes LSN, stores at HEX_OUT[2+3] = HEX_OUT[5]
                     ; Iteration 4 (rcx=0): processes MSN, stores at HEX_OUT[2+0] = HEX_OUT[2]
 
-  mov ax, r10w      ; Copy current r10w to ax
-  shr r10w, 4       ; Shift r10w right by 4 bits for the next nibble
+  mov rax, r10      ; Copy current r10 to rax
+  shr r10, 4       ; Shift r10 right by 4 bits for the next nibble
   and al, 0x0F      ; Isolate the LSB nibble of ax (which is current LSN of r10w before shift)
 
   ; Convert nibble in al to ASCII character
@@ -68,7 +68,7 @@ print_hex:
 
   ; Find the first significant digit and number of significant digits
   mov r8, HEX_OUT + 2 ; r8 points to the first hex digit (H1)
-  mov r9, 4           ; r9 is the count of hex digits to consider
+  mov r9, 8           ; r9 is the count of hex digits to consider
 
 .skip_leading_zeros_loop:
   cmp r9, 1           ; If only one digit left, don't skip it (e.g. for "0x000F", we print "F")
