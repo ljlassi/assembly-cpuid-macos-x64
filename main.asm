@@ -532,5 +532,5 @@ eax_2_ecx: resd 1 ; Store ECX for later use
 line_change: db	" ", 10
 
 ; HEX_OUT is the output buffer for hexadecimal representation
-HEX_OUT: dd '0x0000',0
+HEX_OUT: dd '0x      ',0
 HEX_OUT.len: equ $ - HEX_OUT
