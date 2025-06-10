@@ -76,8 +76,13 @@ start:
     mov     rdx, calling_cpuid_eax1_msg.len
     syscall
 
+    xor ecx, ecx ; Clear ECX before calling CPUID with EAX greater than 0
+    xor ebx, ebx ; Clear EBX before calling CPUID with EAX greater than 0
+
     mov eax, 1
     cpuid
+
+    mov [eax1_ebx_store], ebx
 
     ; EAX contains:
     ; Bits 03-00: Stepping ID
@@ -183,7 +188,34 @@ start:
     call print_hex
     call print_line_change
 
+
+    ; EBX part
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, brand_index_msg
+    mov rdx, brand_index_msg.len
+    syscall
+    mov ebx, [eax1_ebx_store] ; Load EBX from EAX=1 CPUID call
+    movzx rdx, bl ; Load the BL value (bits 0-7 of EBX)
+    call print_hex
     call print_line_change
+
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, clflush_msg
+    mov rdx, clflush_msg.len
+    syscall
+    xor rdx, rdx
+    mov dh, bh
+    call print_hex
+    call print_line_change
+
+
+
+    call print_line_change
+
+    xor ecx, ecx ; Clear ECX before calling CPUID with EAX greater than 0
+    xor ebx, ebx ; Clear EBX before calling CPUID with EAX greater than 0
 
     mov eax, 2
     cpuid
@@ -561,6 +593,12 @@ ext_model_id_msg.len: equ $ - ext_model_id_msg
 ext_family_id_msg: db "Extended Family ID: ", 0
 ext_family_id_msg.len: equ $ - ext_family_id_msg
 
+brand_index_msg: db "Brand Index: ", 0
+brand_index_msg.len: equ $ - brand_index_msg
+
+clflush_msg: db "CLFLUSH line size: ", 0
+clflush_msg.len: equ $ - clflush_msg
+
 not_supported_msg: db "CPUID with EAX being set at the current value is not supported by this CPU.", 10
 not_supported_msg.len: equ $ - not_supported_msg
 
@@ -630,6 +668,8 @@ family_id_val:   resb 1
 processor_type_val: resb 1
 ext_model_id_val: resb 1
 ext_family_id_val: resb 1
+
+eax1_ebx_store: resd 1 ; Store EBX from EAX=1 CPUID call
 
 eax_2_ah: dd 0xFFFF, 0
 
