@@ -211,6 +211,34 @@ start:
     call print_line_change
 
 
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, max_number_logical
+    mov rdx, max_number_logical.len
+    syscall
+    mov r8d, ebx
+    shr r8d, 16
+    and r8b, 0xFF ; This will be a byte
+    movzx rdx, r8b
+    call print_hex
+    call print_line_change
+
+    xor r8d, r8d ; Clear R8D before calling CPUID with EAX greater than 0
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, local_apic_id_msg
+    mov rdx, local_apic_id_msg.len
+    syscall
+    mov r8d, ebx
+    shr r8d, 24
+    and r8b, 0xFF ; This will be a byte
+    movzx rdx, r8b ; Move the byte value to DX for printing
+    call print_hex
+    call print_line_change
+
+
+
+
 
     call print_line_change
 
@@ -598,6 +626,12 @@ brand_index_msg.len: equ $ - brand_index_msg
 
 clflush_msg: db "CLFLUSH line size: ", 0
 clflush_msg.len: equ $ - clflush_msg
+
+max_number_logical: db "Maximum number of addressable IDs for logical processors in this physical package: ", 0
+max_number_logical.len: equ $ - max_number_logical
+
+local_apic_id_msg: db "Local APIC ID: The initial APIC-ID is used to identify the executing logical processor: ", 0
+local_apic_id_msg.len: equ $ - local_apic_id_msg
 
 not_supported_msg: db "CPUID with EAX being set at the current value is not supported by this CPU.", 10
 not_supported_msg.len: equ $ - not_supported_msg
