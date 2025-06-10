@@ -83,6 +83,7 @@ start:
     cpuid
 
     mov [eax1_ebx_store], ebx
+    mov [eax1_edx_store], edx
 
     ; EAX contains:
     ; Bits 03-00: Stepping ID
@@ -237,7 +238,34 @@ start:
     call print_line_change
 
 
+    ; Example: Checking Bit 0 (FPU present) of EDX using TEST
 
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, bitfield_info_msg
+    mov rdx, bitfield_info_msg.len
+    syscall
+
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, onboard_fpu_msg
+    mov rdx, onboard_fpu_msg.len
+    syscall
+
+        mov r8d, [eax1_edx_store]
+        test r8d, 1 ; Test bit 0 (mask is 1, which is 2^0)
+
+        mov al, 0   ; Assume bit is 0
+        jnz .bit_is_set_test ; If result of TEST is non-zero, bit was 1
+        jmp .continue_test
+    .bit_is_set_test:
+        mov al, 1
+    .continue_test:
+        ; AL now contains 0 or 1 for bit 0
+        xor rdx, rdx ; Clear RDX before printing
+        movzx dx, al
+        call print_binary ; Print the result as binary
+        call print_line_change
 
 
     call print_line_change
@@ -633,6 +661,12 @@ max_number_logical.len: equ $ - max_number_logical
 local_apic_id_msg: db "Local APIC ID: The initial APIC-ID is used to identify the executing logical processor: ", 0
 local_apic_id_msg.len: equ $ - local_apic_id_msg
 
+bitfield_info_msg : db "Bitfield information (EDX, ECX) for EAX=1 CPUID call:", 10, 0
+bitfield_info_msg.len: equ $ - bitfield_info_msg
+
+onboard_fpu_msg: db "Onboard x87 FPU: ", 0
+onboard_fpu_msg.len: equ $ - onboard_fpu_msg 
+
 not_supported_msg: db "CPUID with EAX being set at the current value is not supported by this CPU.", 10
 not_supported_msg.len: equ $ - not_supported_msg
 
@@ -704,6 +738,8 @@ ext_model_id_val: resb 1
 ext_family_id_val: resb 1
 
 eax1_ebx_store: resd 1 ; Store EBX from EAX=1 CPUID call
+
+eax1_edx_store: resd 1 ; Store EDX from EAX=1 CPUID call
 
 eax_2_ah: dd 0xFFFF, 0
 
