@@ -5,7 +5,7 @@ binary_zero_string:  db "0"          ; String for value 0
 binary_zero_string_len: equ $ - binary_zero_string
 
 section .text
-; NOTE: This is mainly for FUTURE USE in main.asm. Currently NOT USED by main.asm.
+; NOTE: This is mainly for USE IN main.asm.
 ; Prints the 32-bit value in EDX as a binary string, without leading zeros.
 ; Prints "0" if EDX is 0.
 ; Assumes SYSCALL_WRITE is defined externally (e.g., in main.asm).

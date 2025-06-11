@@ -267,6 +267,24 @@ start:
         call print_binary ; Print the result as binary
         call print_line_change
 
+    mov rax, SYSCALL_WRITE
+    mov rdi, 1 ; stdout
+    mov rsi, vme_msg
+    mov rdx, vme_msg.len
+    syscall
+    test r8d, 0x00000002 ; Test bit 1 (mask is 2, which is 2^1)
+    mov al, 0   ; Assume bit is 0
+    jnz .bit_is_set_test_vme ; If result of TEST is non-zero, bit was 1
+    jmp .continue_test_vme
+
+.bit_is_set_test_vme:
+    mov al, 1
+.continue_test_vme:
+    ; AL now contains 0 or 1 for bit 1
+    xor rdx, rdx ; Clear RDX before printing
+    movzx dx, al
+    call print_binary ; Print the result as binary
+    call print_line_change
 
     call print_line_change
 
@@ -666,6 +684,9 @@ bitfield_info_msg.len: equ $ - bitfield_info_msg
 
 onboard_fpu_msg: db "Onboard x87 FPU: ", 0
 onboard_fpu_msg.len: equ $ - onboard_fpu_msg 
+
+vme_msg: db "Virtual 8086 mode extensions (such as VIF, VIP, PVI): ", 0
+vme_msg.len: equ $ - vme_msg
 
 not_supported_msg: db "CPUID with EAX being set at the current value is not supported by this CPU.", 10
 not_supported_msg.len: equ $ - not_supported_msg
